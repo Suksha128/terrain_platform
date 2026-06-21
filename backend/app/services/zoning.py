@@ -47,6 +47,7 @@ def create_terrain_clusters(feature_paths: dict, output_dir: str, n_clusters: in
 
     if not arrays:
         raise ValueError("No feature arrays available for clustering.")
+        print(f"Loaded {name} from {path} with shape {arr.shape}")
 
     X = np.stack(arrays, axis=1)
     valid_mask = ~np.any(np.isnan(X), axis=1)
@@ -99,6 +100,12 @@ def zones_to_geodataframe(zone_raster_path: str) -> gpd.GeoDataFrame:
         {"geometry": shape(geom), "zone_id": str(int(val))}
         for geom, val in shapes(arr.astype(np.float32), mask=mask, transform=transform)
     ]
-    gdf = gpd.GeoDataFrame(geoms, crs=crs)
+    if not geoms:
+        # Return an empty GeoDataFrame with the correct columns if no zones found
+        import pandas as pd
+        df = pd.DataFrame(columns=["zone_id", "geometry"])
+        return gpd.GeoDataFrame(df, geometry="geometry", crs=crs)
+
+    gdf = gpd.GeoDataFrame(geoms, geometry="geometry", crs=crs)
     gdf = gdf.dissolve(by="zone_id").reset_index()
     return gdf
