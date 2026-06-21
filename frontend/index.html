@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terrain Intelligence Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="src/index.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar / Setup Wizard -->
+    <aside class="sidebar">
+      <div class="brand">
+        <i class="fa-solid fa-mountain"></i>
+        <span>TerrainPlatform</span>
+      </div>
+
+      <div class="glass-panel">
+        <h3>1. Upload Terrain Folder</h3>
+        <p style="font-size: 0.875rem;">Upload a directory containing your terrain features (DTM, NDVI, Slope, etc.). The system will automatically map them.</p>
+        
+        <div class="upload-zone" id="folder-dropzone" onclick="document.getElementById('folder-input').click()">
+          <i class="fa-solid fa-folder-open"></i>
+          <div class="upload-label">Drag & Drop Folder or Click</div>
+          <div class="file-name" id="folder-name"></div>
+        </div>
+        <input type="file" id="folder-input" webkitdirectory directory multiple onchange="app.handleFolderUpload(event)" />
+        
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid var(--panel-border);">
+          <strong><i class="fa-solid fa-circle-info"></i> Auto-Mapping Convention:</strong><br>
+          Ensure your filenames contain the relevant keywords for automatic identification (e.g., <em>"dtm"</em>, <em>"ndvi"</em>, <em>"slope"</em>, <em>"twi"</em>, <em>"aspect"</em>, <em>"flow_dir"</em>, <em>"soil_moist"</em>, <em>"watershed"</em>).
+        </div>
+        
+        <div id="job-id-display" style="display: none; font-size: 0.875rem; color: var(--accent-green); margin-bottom: 1rem;">
+          <i class="fa-solid fa-check-circle"></i> Workspace Initialized: <span id="job-id-text" style="font-family: monospace;"></span>
+        </div>
+
+        <div id="mapped-features-list" style="font-size: 0.8rem; margin-top: 0.5rem; color: var(--text-secondary);">
+        </div>
+      </div>
+
+      <div class="glass-panel">
+        <h3>2. Configuration</h3>
+        
+        <div class="form-group">
+          <label for="zone-method">Zoning Method</label>
+          <select id="zone-method" class="form-control">
+            <option value="combined">Combined (Precision targeting within basins)</option>
+            <option value="hydrologic">Hydrologic (Trace water & design drainage)</option>
+            <option value="terrain_cluster">Clustering (Group similar soil/terrain)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="n-clusters">Number of Clusters (2-20)</label>
+          <input type="number" id="n-clusters" class="form-control" value="5" min="2" max="20" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-checkbox">
+            <input type="checkbox" id="fill-depressions" checked />
+            Hydrologically correct DTM (Fill Depressions)
+          </label>
+        </div>
+
+        <button class="btn btn-primary" id="analyze-btn" onclick="app.runAnalysis()" disabled>
+          <i class="fa-solid fa-bolt"></i> Run Analysis
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <div class="glass-panel results-header" style="padding: 2rem;">
+        <div>
+          <h2 style="margin-bottom: 0.5rem; font-size: 2rem;">Intelligence Dashboard</h2>
+          <p style="margin: 0; font-size: 1.1rem;">Hydrologic zones and waterlogging risk predictions based on AI models.</p>
+        </div>
+      </div>
+
+      <div id="results-container">
+        <div class="empty-state">
+          <i class="fa-solid fa-map"></i>
+          <h2>No Data Yet</h2>
+          <p>Upload a DTM and run the analysis to view terrain insights and risk zones.</p>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <h3 style="color: white; font-weight: 500;">Processing Terrain Intelligence...</h3>
+    <p style="color: var(--text-secondary); max-width: 400px; text-align: center; margin-top: 1rem;">
+      Analyzing DTM, computing hydrological flow, delineating watersheds, and running predictive AI models. This may take a moment.
+    </p>
+  </div>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
