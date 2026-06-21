@@ -103,10 +103,13 @@ def analyze(req: AnalyzeRequest):
 
     feat_paths = extract_all_features(processed_dtm, job_dir, pre_uploaded)
 
+    from app.utils.geo_utils import align_raster_to_reference
     # Make sure optional features are still passed into compute_zonal_stats
     for opt in ["ndvi", "soil_moisture", "watersheds"]:
         if opt in pre_uploaded and opt not in feat_paths:
-            feat_paths[opt] = pre_uploaded[opt]
+            aligned_path = str(Path(job_dir) / f"{opt}_aligned.tif")
+            align_raster_to_reference(pre_uploaded[opt], processed_dtm, aligned_path)
+            feat_paths[opt] = aligned_path
 
     if req.zone_method == req.zone_method.hydrologic:
         zone_path = delineate_watersheds(feat_paths["flow_direction"], feat_paths["flow_accumulation"], job_dir)

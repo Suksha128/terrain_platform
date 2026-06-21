@@ -35,7 +35,7 @@ FEATURE_COLS = [
 ]
 
 
-def train_model(csv_path: str, model_type: str = "xgboost") -> Dict:
+def train_model(csv_path: str) -> Dict:
     import pandas as pd
 
     df = pd.read_csv(csv_path)
@@ -52,24 +52,36 @@ def train_model(csv_path: str, model_type: str = "xgboost") -> Dict:
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    model = _build_model(model_type, n_classes=len(le.classes_))
-    model.fit(X_train, y_train)
+    models_to_try = ["random_forest"]
+    if xgb is not None: models_to_try.append("xgboost")
+    if lgb is not None: models_to_try.append("lightgbm")
 
-    y_pred = model.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
+    best_acc = -1
+    best_model = None
+    best_model_name = ""
 
-    if hasattr(model, "feature_importances_"):
-        imp = dict(zip(FEATURE_COLS, model.feature_importances_.tolist()))
+    for m_type in models_to_try:
+        model = _build_model(m_type, n_classes=len(le.classes_))
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        if acc > best_acc:
+            best_acc = acc
+            best_model = model
+            best_model_name = m_type
+
+    if hasattr(best_model, "feature_importances_"):
+        imp = dict(zip(FEATURE_COLS, best_model.feature_importances_.tolist()))
     else:
         imp = {}
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(MODEL_PATH, "wb") as f:
-        pickle.dump(model, f)
+        pickle.dump(best_model, f)
     with open(LABEL_ENC_PATH, "wb") as f:
         pickle.dump(le, f)
 
-    return {"accuracy": float(acc), "feature_importance": imp, "model_type": model_type}
+    return {"accuracy": float(best_acc), "feature_importance": imp, "model_type": best_model_name}
 
 
 def _build_model(model_type: str, n_classes: int = 3):

@@ -38,19 +38,12 @@ st.header("2. Configuration")
 
 col1, col2 = st.columns(2)
 with col1:
-    zone_method = st.selectbox(
-        "Zoning Method",
-        options=["combined", "hydrologic", "terrain_cluster"],
-        format_func=lambda x: {
-            "combined": "Combined (Precision targeting within basins)",
-            "hydrologic": "Hydrologic (Trace water & design drainage)",
-            "terrain_cluster": "Clustering (Group similar soil/terrain)"
-        }.get(x, x)
-    )
-    model_type = st.selectbox("Model Type", ["random_forest", "xgboost", "lightgbm"])
+    st.info("Using Most Accurate Method: Hydrologic Zones & Auto-selected ML Model")
+    zone_method = "hydrologic"
+    model_type = "random_forest"
     
 with col2:
-    n_clusters = st.number_input("Number of Clusters (2-20)", min_value=2, max_value=20, value=5)
+    n_clusters = 5
     fill_depressions = st.checkbox("Hydrologically correct DTM (Fill Depressions)", value=True)
 
 if st.button("Run Analysis", disabled=not st.session_state.job_id, type="primary"):
