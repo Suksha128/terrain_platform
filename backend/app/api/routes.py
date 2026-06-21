@@ -99,7 +99,7 @@ def analyze(req: AnalyzeRequest):
     for ft in ["slope", "aspect", "twi", "flow_direction", "flow_accumulation", "depression_depth", "watersheds", "ndvi", "soil_moisture"]:
         f_path = UPLOAD_DIR / f"{req.job_id}_{ft}.tif"
         if f_path.exists():
-            pre_uploaded[ft] = str(f_path)
+            pre_uploaded[ft] = str(f_path.resolve())
 
     feat_paths = extract_all_features(processed_dtm, job_dir, pre_uploaded)
 

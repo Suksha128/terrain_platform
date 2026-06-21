@@ -10,8 +10,9 @@ wbt.set_verbose_mode(False)
 
 
 def extract_all_features(dtm_path: str, output_dir: str, pre_uploaded: dict = None) -> dict:
-    out = Path(output_dir)
+    out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
+    dtm_path = str(Path(dtm_path).resolve())
 
     if pre_uploaded is None:
         pre_uploaded = {}

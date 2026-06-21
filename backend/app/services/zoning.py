@@ -14,8 +14,10 @@ wbt.set_verbose_mode(False)
 
 
 def delineate_watersheds(flow_dir_path: str, flow_acc_path: str, output_dir: str, min_basin_size: int = 500) -> str:
-    out = Path(output_dir)
+    out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
+    flow_dir_path = str(Path(flow_dir_path).resolve())
+    flow_acc_path = str(Path(flow_acc_path).resolve())
 
     streams_path = str(out / "streams.tif")
     wbt.extract_streams(flow_accum=flow_acc_path, output=streams_path, threshold=min_basin_size, zero_background=False)
@@ -26,7 +28,7 @@ def delineate_watersheds(flow_dir_path: str, flow_acc_path: str, output_dir: str
 
 
 def create_terrain_clusters(feature_paths: dict, output_dir: str, n_clusters: int = 5) -> str:
-    out = Path(output_dir)
+    out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
     feature_keys = ["slope", "twi", "elevation", "plan_curvature", "ndvi", "soil_moisture"]
@@ -66,7 +68,7 @@ def create_terrain_clusters(feature_paths: dict, output_dir: str, n_clusters: in
 
 
 def create_combined_zones(flow_dir_path: str, flow_acc_path: str, feature_paths: dict, output_dir: str, n_clusters: int = 5, min_basin_size: int = 500) -> str:
-    out = Path(output_dir)
+    out = Path(output_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
     watershed_path = delineate_watersheds(flow_dir_path, flow_acc_path, output_dir, min_basin_size)
