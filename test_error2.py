@@ -9,5 +9,5 @@ payload = {
     "target_crs": "EPSG:32644"
 }
 print("Analyzing...")
-res = requests.post("http://localhost:8001/analyze", json=payload)
+res = requests.post("http://localhost:8000/analyze", json=payload)
 print("Analyze:", res.text)

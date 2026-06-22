@@ -77,14 +77,13 @@ def extract_all_features(dtm_path: str, output_dir: str, pre_uploaded: dict = No
 
     # ADVANCED ACCURACY: Calculate D-Infinity SCA exclusively for highly accurate TWI
     d_inf_sca_path = str(out / "d_inf_sca.tif")
-    d_inf_pntr_path = str(out / "d_inf_pointer.tif")
-    wbt.d_inf_pointer(dem=paths["conditioned_dtm"], output=d_inf_pntr_path)
     wbt.d_inf_flow_accumulation(
-        input=d_inf_pntr_path,
+        i=paths["conditioned_dtm"],
         output=d_inf_sca_path,
-        out_type="Specific Catchment Area (SCA)",
+        out_type="sca",
         log=False,
-        clip=False
+        clip=False,
+        pntr=False
     )
     paths["d_inf_sca"] = d_inf_sca_path
 
