@@ -24,6 +24,40 @@ This platform doesn't just look at elevation—it physically simulates how water
 
 ---
 
+## 🌍 QGIS Data Preparation Guide
+
+To achieve the highest accuracy, your input `.tif` files must be properly formatted before uploading them to the platform. Follow these steps in QGIS:
+
+### 1. Coordinate Reference System (CRS)
+Ensure all your raster layers are projected in a **Metric CRS** (like UTM) rather than Geographic (Lat/Lon). 
+- Right-click your layer -> `Export` -> `Save As`.
+- Set the CRS to your local UTM zone (e.g., `EPSG:32644`).
+- This ensures elevation and flow accumulation are calculated in square meters, not degrees!
+
+### 2. Digital Terrain Model (`dtm.tif`)
+- Ensure the DTM is a **Single Band** Float32 raster.
+- NoData values should be properly set (e.g., `-9999`) to prevent the physics engine from routing water off the edge of the map.
+- Export as `dtm.tif`.
+
+### 3. Generating NDVI (`ndvi.tif`)
+If you are using Multispectral satellite imagery (like Sentinel-2 or Landsat), you must calculate the NDVI before uploading:
+1. Open the **Raster Calculator** in QGIS (`Raster` -> `Raster Calculator`).
+2. Identify your Red and Near-Infrared (NIR) bands. *(For Sentinel-2: Band 4 is Red, Band 8 is NIR).*
+3. Enter the NDVI formula:
+   ```text
+   ( "Band_NIR" - "Band_Red" ) / ( "Band_NIR" + "Band_Red" )
+   ```
+4. Export the resulting single-band output as `ndvi.tif`.
+
+### 4. File Naming Convention
+The platform automatically maps your data based on the filename. Please name your exported GeoTIFFs exactly as follows:
+- `dtm.tif` (Required)
+- `ndvi.tif` (Optional - highly recommended for crop health ground truth)
+- `slope.tif` (Optional - platform will auto-generate if missing)
+- `soil_moisture.tif` (Optional)
+
+---
+
 ## 🏗️ System Architecture
 
 The platform is split into a highly decoupled Backend engine and a lightweight Frontend dashboard.
