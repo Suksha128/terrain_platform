@@ -1,0 +1,11 @@
+--- backend/app/services/zoning.py
++++ backend/app/services/zoning.py
+@@ -48,7 +48,7 @@
+         valid_mask = valid_mask & (~np.isnan(arr))
+         arrays.append(arr.flatten())
+ 
+-    print("Arrays shapes:", [a.shape for a in arrays])
++    print("Arrays shapes:", [(k, arrays[i].shape) for i, k in enumerate(feature_paths.keys())])
+     X = np.stack(arrays, axis=1)
+     
+     if not np.any(valid_mask):

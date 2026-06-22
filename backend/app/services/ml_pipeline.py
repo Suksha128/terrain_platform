@@ -177,6 +177,12 @@ def _rule_based_fallback(zones: List[ZoneFeatures]) -> List[RiskPrediction]:
             score += 0.2
         if z.max_flow_accumulation > 10000:
             score += 0.1
+            
+        # Factor in live weather forecast
+        if z.rainfall_total and z.rainfall_total > 20:
+            score += 0.25
+        elif z.rainfall_total and z.rainfall_total > 5:
+            score += 0.1
 
         score = min(score, 1.0)
         risk = "High" if score > 0.6 else "Medium" if score > 0.3 else "Low"

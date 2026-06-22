@@ -98,10 +98,20 @@ def extract_all_features(dtm_path: str, output_dir: str, pre_uploaded: dict = No
 
 
 def _compute_depression_depth(dtm_path: str, output_path: str) -> None:
+    import numpy as np
+    import tempfile, os
+    from app.utils.raster_utils import read_dtm, write_raster
     arr_orig, profile = read_dtm(dtm_path)
 
     tmp_filled = tempfile.mktemp(suffix=".tif")
     wbt.fill_depressions(dem=dtm_path, output=tmp_filled, fix_flats=True)
+    
+    if not Path(tmp_filled).exists():
+        print(f"WARNING: WBT failed to fill depressions for depth. Outputting zeros at {output_path}")
+        zeros = np.zeros_like(arr_orig, dtype=np.float32)
+        write_raster(output_path, zeros, profile)
+        return
+
     arr_filled, _ = read_dtm(tmp_filled)
 
     depth = np.where(

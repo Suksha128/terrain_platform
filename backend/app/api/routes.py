@@ -1,4 +1,7 @@
 import json
+import requests as req
+import rasterio
+from pyproj import Transformer
 import uuid
 from pathlib import Path
 from typing import List
@@ -83,6 +86,28 @@ async def upload_folder(job_id: str = Form(None), files: List[UploadFile] = File
     return {"job_id": job_id, "mapped_features": mapped_features}
 
 
+def fetch_weather_forecast(dtm_path: str) -> float:
+    try:
+        with rasterio.open(dtm_path) as src:
+            bounds = src.bounds
+            crs = src.crs
+            center_x = (bounds.left + bounds.right) / 2
+            center_y = (bounds.bottom + bounds.top) / 2
+            
+        transformer = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+        lon, lat = transformer.transform(center_x, center_y)
+        
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=precipitation_sum&timezone=auto&forecast_days=3"
+        res = req.get(url)
+        if res.status_code == 200:
+            data = res.json()
+            sums = data.get("daily", {}).get("precipitation_sum", [])
+            valid_sums = [s for s in sums if s is not None]
+            return sum(valid_sums) if valid_sums else 0.0
+    except Exception as e:
+        print(f"Weather API failed: {e}")
+    return 0.0
+
 @router.post("/analyze", response_model=AnalysisResult)
 def analyze(req: AnalyzeRequest):
     dtm_path = UPLOAD_DIR / f"{req.job_id}_dtm.tif"
@@ -119,10 +144,13 @@ def analyze(req: AnalyzeRequest):
         zone_path = create_combined_zones(feat_paths["flow_direction"], feat_paths["flow_accumulation"], feat_paths, job_dir, req.n_clusters)
 
     gdf = zones_to_geodataframe(zone_path)
+    # Project to EPSG:4326 for standard web mapping (Folium)
+    gdf = gdf.to_crs("EPSG:4326")
     geojson_path = str(Path(job_dir) / "zones.geojson")
     gdf.to_file(geojson_path, driver="GeoJSON")
 
-    zones = compute_zonal_stats(zone_path, feat_paths)
+    total_rain = fetch_weather_forecast(str(dtm_path))
+    zones = compute_zonal_stats(zone_path, feat_paths, rainfall_total=total_rain)
 
     predictions = predict_risk(zones)
 

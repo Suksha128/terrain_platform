@@ -30,14 +30,16 @@ def preprocess_dtm(
 
     if fill_depressions:
         filled_path = str(out / "dtm_filled.tif")
-        wbt.breach_depressions_least_cost(
+        wbt.fill_depressions(
             dem=working_dtm,
             output=filled_path,
-            dist=5,
-            min_dist=True,
-            fill=True,
+            fix_flats=True
         )
-        processed_dtm = filled_path
+        if Path(filled_path).exists():
+            processed_dtm = filled_path
+        else:
+            print("WARNING: WBT failed to fill depressions. Falling back to working DTM.")
+            processed_dtm = working_dtm
     else:
         processed_dtm = working_dtm
 
