@@ -61,6 +61,7 @@ def extract_all_features(dtm_path: str, output_dir: str, pre_uploaded: dict = No
         wbt.d8_pointer(dem=paths["conditioned_dtm"], output=flow_dir_path, esri_pntr=False)
         paths["flow_direction"] = flow_dir_path
 
+    # Calculate D8 for Stream Extraction & Basins (requires cell counts)
     flow_acc_path = str(out / "flow_accumulation.tif")
     if "flow_accumulation" in pre_uploaded:
         paths["flow_accumulation"] = pre_uploaded["flow_accumulation"]
@@ -74,12 +75,25 @@ def extract_all_features(dtm_path: str, output_dir: str, pre_uploaded: dict = No
         )
         paths["flow_accumulation"] = flow_acc_path
 
+    # ADVANCED ACCURACY: Calculate D-Infinity SCA exclusively for highly accurate TWI
+    d_inf_sca_path = str(out / "d_inf_sca.tif")
+    d_inf_pntr_path = str(out / "d_inf_pointer.tif")
+    wbt.d_inf_pointer(dem=paths["conditioned_dtm"], output=d_inf_pntr_path)
+    wbt.d_inf_flow_accumulation(
+        input=d_inf_pntr_path,
+        output=d_inf_sca_path,
+        out_type="Specific Catchment Area (SCA)",
+        log=False,
+        clip=False
+    )
+    paths["d_inf_sca"] = d_inf_sca_path
+
     twi_path = str(out / "twi.tif")
     if "twi" in pre_uploaded:
         paths["twi"] = pre_uploaded["twi"]
     else:
         wbt.wetness_index(
-            sca=paths["flow_accumulation"],
+            sca=paths["d_inf_sca"],
             slope=paths["slope"],
             output=twi_path,
         )
