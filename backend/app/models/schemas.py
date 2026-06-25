@@ -22,6 +22,7 @@ class AnalyzeRequest(BaseModel):
     model_type: ModelType = ModelType.xgboost
     fill_depressions: bool = True
     target_crs: str = "EPSG:32644"
+    soil_type: str = "Loam"
 
 
 class ZoneFeatures(BaseModel):
@@ -35,6 +36,7 @@ class ZoneFeatures(BaseModel):
     max_flow_accumulation: float
     mean_depression_depth: float
     mean_ndvi: Optional[float] = None
+    mean_chm: Optional[float] = None
     mean_soil_moisture: Optional[float] = None
     rainfall_total: Optional[float] = None
 

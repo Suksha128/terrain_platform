@@ -1,3 +1,12 @@
+---
+title: Terrain Intelligence
+emoji: 🏔️
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # 🏔️ Terrain Intelligence Platform
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)

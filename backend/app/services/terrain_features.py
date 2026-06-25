@@ -107,6 +107,19 @@ def extract_all_features(dtm_path: str, output_dir: str, pre_uploaded: dict = No
 
     paths["elevation"] = dtm_path
 
+    # Advanced Analysis: Canopy Height Model (CHM)
+    if "dem" in pre_uploaded:
+        # Assuming the DEM has already been aligned to the DTM by routes.py
+        chm_path = str(out / "chm.tif")
+        wbt.subtract(input1=pre_uploaded["dem"], input2=dtm_path, output=chm_path)
+        
+        # Ensure CHM is non-negative (noise can cause DEM < DTM)
+        arr_chm, profile = read_dtm(chm_path)
+        arr_chm = np.maximum(arr_chm, 0.0)
+        write_raster(chm_path, arr_chm, profile)
+        
+        paths["chm"] = chm_path
+
     return paths
 
 

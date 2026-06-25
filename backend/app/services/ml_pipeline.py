@@ -106,7 +106,18 @@ def _build_model(model_type: str, n_classes: int = 3):
     return RandomForestClassifier(n_estimators=200, max_depth=6, random_state=42)
 
 
-def predict_risk(zones: List[ZoneFeatures]) -> List[RiskPrediction]:
+def predict_risk(zones: List[ZoneFeatures], soil_type: str = "Loam") -> List[RiskPrediction]:
+    # Apply Sub-surface Infiltration Multiplier based on Soil Type
+    if "Clay" in soil_type:
+        multiplier = 1.2
+    elif "Sand" in soil_type:
+        multiplier = 0.8
+    else:
+        multiplier = 1.0
+        
+    for z in zones:
+        z.mean_twi *= multiplier
+
     if not MODEL_PATH.exists():
         return _rule_based_fallback(zones)
 
@@ -198,6 +209,15 @@ def _rule_based_fallback(zones: List[ZoneFeatures]) -> List[RiskPrediction]:
                 score += 0.3
             elif z.mean_soil_moisture < 0.3:
                 score -= 0.2
+                
+        # Canopy Height Model (CHM) integration
+        if z.mean_chm is not None:
+            if z.mean_chm > 0.5:
+                # Mature crops or strong canopy -> more resilient root systems
+                score -= 0.1
+            elif z.mean_chm < 0.2:
+                # Bare soil or very young crops -> vulnerable to surface runoff/erosion
+                score += 0.1
 
 
         score = min(score, 1.0)
@@ -241,6 +261,11 @@ def _heuristic_drivers(z: ZoneFeatures):
         drivers.append("Significant depression depth — water pooling likely")
     if z.max_flow_accumulation > 5000:
         drivers.append("High flow accumulation — convergent flow paths")
+    if z.mean_chm is not None:
+        if z.mean_chm > 0.5:
+            drivers.append("Mature crop canopy detected — root systems provide resilience")
+        elif z.mean_chm < 0.2:
+            drivers.append("Bare soil/young crops detected — high vulnerability to erosion")
     if not drivers:
         drivers.append("Moderate terrain — standard risk")
     return drivers[:3]

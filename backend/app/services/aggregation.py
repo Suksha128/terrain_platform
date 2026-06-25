@@ -40,6 +40,7 @@ def compute_zonal_stats(zone_raster_path: str, feature_paths: dict, rainfall_tot
             max_flow_accumulation=stat("flow_accumulation", mask, np.max),
             mean_depression_depth=stat("depression_depth", mask, np.mean),
             mean_ndvi=stat("ndvi", mask, np.mean) if "ndvi" in feature_arrays else None,
+            mean_chm=stat("chm", mask, np.mean) if "chm" in feature_arrays else None,
             mean_soil_moisture=stat("soil_moisture", mask, np.mean) if "soil_moisture" in feature_arrays else None,
             rainfall_total=rainfall_total,
         ))

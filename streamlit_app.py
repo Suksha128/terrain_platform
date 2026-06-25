@@ -6,7 +6,7 @@ import folium
 from streamlit_folium import st_folium
 import geopandas as gpd
 
-API_BASE = "http://localhost:8000"
+API_BASE = "http://127.0.0.1:8000"
 
 st.set_page_config(page_title="Terrain Intelligence Platform", page_icon="🏔️", layout="wide")
 
@@ -18,7 +18,7 @@ if "job_id" not in st.session_state:
     st.session_state.analysis_data = None
 
 st.header("1. Upload Terrain Files")
-st.markdown("Upload multiple GeoTIFF files. The system will auto-map based on filenames (e.g. `dtm.tif`, `slope.tif`, `ndvi.tif`).")
+st.markdown("Upload multiple GeoTIFF files. The system will auto-map based on filenames (e.g., `dtm.tif`, `dem.tif`, `ndvi.tif`).")
 
 uploaded_files = st.file_uploader("Upload .tif/.tiff files", type=["tif", "tiff"], accept_multiple_files=True)
 
@@ -52,6 +52,11 @@ with col1:
         }.get(x, x)
     )
     model_type = "random_forest"
+    soil_type = st.selectbox(
+        "Primary Soil Type",
+        options=["Loam (Standard)", "Clay (High Runoff)", "Sand (High Infiltration)"],
+        index=0
+    )
     
 with col2:
     n_clusters = st.number_input("Number of Zones (Clustering/Combined only)", min_value=2, max_value=20, value=5)
@@ -65,7 +70,8 @@ if st.button("Run Analysis", disabled=not st.session_state.job_id, type="primary
             "n_clusters": n_clusters,
             "fill_depressions": fill_depressions,
             "model_type": model_type,
-            "target_crs": "EPSG:32644"
+            "target_crs": "EPSG:32644",
+            "soil_type": soil_type.split()[0] # Sends "Loam", "Clay", or "Sand"
         }
         
         try:
@@ -103,6 +109,21 @@ if st.session_state.analysis_data:
                 
             features = geojson_data.get("features", [])
             if features:
+                # Inject Risk Level into properties for the tooltip
+                for f in features:
+                    zid = f["properties"]["zone_id"]
+                    f["properties"]["Risk_Level"] = "Unknown"
+                    
+                    # Fallback for old geojsons that don't have Center_Lat yet
+                    if "Center_Lat" not in f["properties"]:
+                        f["properties"]["Center_Lat"] = "Click 'Run Analysis' again"
+                        f["properties"]["Center_Lon"] = "Click 'Run Analysis' again"
+                        
+                    for p in data.get("predictions", []):
+                        if p["zone_id"] == zid:
+                            f["properties"]["Risk_Level"] = p["waterlogging_risk"]
+                            break
+                            
                 try:
                     coords = features[0]["geometry"]["coordinates"][0][0]
                     if isinstance(coords[0], list): coords = coords[0]
@@ -111,7 +132,10 @@ if st.session_state.analysis_data:
                     folium.GeoJson(
                         geojson_data,
                         style_function=style_fn,
-                        tooltip=folium.GeoJsonTooltip(fields=["zone_id"], aliases=["Zone ID: "])
+                        tooltip=folium.GeoJsonTooltip(
+                            fields=["zone_id", "Risk_Level", "Center_Lat", "Center_Lon"], 
+                            aliases=["Zone ID:", "Risk Level:", "Latitude:", "Longitude:"]
+                        )
                     ).add_to(m)
                     
                     st.subheader("Interactive Risk Map")
@@ -140,15 +164,52 @@ if st.session_state.analysis_data:
         
         with st.expander(f"Zone {pred['zone_id']} - {pred['waterlogging_risk']} Risk"):
             if zone_stats:
-                cols = st.columns(4)
+                cols = st.columns(5)
                 cols[0].metric("Elevation (m)", f"{zone_stats['mean_elevation']:.1f}")
                 cols[1].metric("Slope (deg)", f"{zone_stats['mean_slope']:.1f}")
                 cols[2].metric("TWI", f"{zone_stats['mean_twi']:.2f}")
                 cols[3].metric("Depression (m)", f"{zone_stats['mean_depression_depth']:.2f}")
+                chm_val = f"{zone_stats['mean_chm']:.2f}" if zone_stats.get('mean_chm') is not None else "N/A"
+                cols[4].metric("Canopy (m)", chm_val)
                 
             st.write(f"**Drainage Priority:** {pred['drainage_priority']}")
             st.write(f"**Irrigation:** {pred['irrigation_recommendation']}")
             st.write("**Key Drivers:**")
             for d in pred['key_drivers']:
                 st.write(f"- {d}")
+
+    st.markdown("---")
+    st.subheader("📥 Export Insights")
+    colA, colB = st.columns(2)
+    
+    with colA:
+        json_str = json.dumps(data, indent=2)
+        st.download_button(
+            label="📄 Download Full Report (JSON)",
+            file_name=f"terrain_insights_{st.session_state.job_id}.json",
+            mime="application/json",
+            data=json_str,
+            use_container_width=True
+        )
+        
+    with colB:
+        zones_list = data.get("zones", [])
+        preds_list = data.get("predictions", [])
+        if zones_list and preds_list:
+            df_zones = pd.DataFrame(zones_list)
+            df_preds = pd.DataFrame(preds_list)
+            df_merged = pd.merge(df_zones, df_preds, on="zone_id", how="left")
+            
+            # Convert list columns to strings to prevent CSV issues
+            if "key_drivers" in df_merged.columns:
+                df_merged["key_drivers"] = df_merged["key_drivers"].apply(lambda x: ", ".join(x) if isinstance(x, list) else x)
+                
+            csv_data = df_merged.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📊 Download Zone Data (CSV)",
+                file_name=f"zone_data_{st.session_state.job_id}.csv",
+                mime="text/csv",
+                data=csv_data,
+                use_container_width=True
+            )
 

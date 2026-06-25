@@ -54,8 +54,10 @@ async def upload_folder(job_id: str = Form(None), files: List[UploadFile] = File
             
         fname = file.filename.lower()
         feature_type = "unknown"
-        if "dtm" in fname or "dem" in fname:
+        if "dtm" in fname:
             feature_type = "dtm"
+        elif "dem" in fname:
+            feature_type = "dem"
         elif "ndvi" in fname:
             feature_type = "ndvi"
         elif "slope" in fname:
@@ -121,7 +123,7 @@ def analyze(req: AnalyzeRequest):
     processed_dtm = prep["processed_dtm"]
 
     pre_uploaded = {}
-    for ft in ["slope", "aspect", "twi", "flow_direction", "flow_accumulation", "depression_depth", "watersheds", "ndvi", "soil_moisture"]:
+    for ft in ["dem", "slope", "aspect", "twi", "flow_direction", "flow_accumulation", "depression_depth", "watersheds", "ndvi", "soil_moisture"]:
         f_path = UPLOAD_DIR / f"{req.job_id}_{ft}.tif"
         if f_path.exists():
             pre_uploaded[ft] = str(f_path.resolve())
@@ -130,7 +132,7 @@ def analyze(req: AnalyzeRequest):
 
     from app.utils.geo_utils import align_raster_to_reference
     # Make sure optional features are still passed into compute_zonal_stats
-    for opt in ["ndvi", "soil_moisture", "watersheds"]:
+    for opt in ["dem", "ndvi", "soil_moisture", "watersheds"]:
         if opt in pre_uploaded and opt not in feat_paths:
             aligned_path = str(Path(job_dir) / f"{opt}_aligned.tif")
             align_raster_to_reference(pre_uploaded[opt], processed_dtm, aligned_path)
@@ -146,13 +148,22 @@ def analyze(req: AnalyzeRequest):
     gdf = zones_to_geodataframe(zone_path)
     # Project to EPSG:4326 for standard web mapping (Folium)
     gdf = gdf.to_crs("EPSG:4326")
+    
+    # Add centroid coordinates to GeoJSON properties for field identification
+    import warnings
+    from shapely.errors import ShapelyDeprecationWarning
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        gdf["Center_Lat"] = gdf.geometry.centroid.y.round(6)
+        gdf["Center_Lon"] = gdf.geometry.centroid.x.round(6)
+        
     geojson_path = str(Path(job_dir) / "zones.geojson")
     gdf.to_file(geojson_path, driver="GeoJSON")
 
     total_rain = fetch_weather_forecast(str(dtm_path))
     zones = compute_zonal_stats(zone_path, feat_paths, rainfall_total=total_rain)
 
-    predictions = predict_risk(zones)
+    predictions = predict_risk(zones, req.soil_type)
 
     insights = generate_insights(zones, predictions)
 
