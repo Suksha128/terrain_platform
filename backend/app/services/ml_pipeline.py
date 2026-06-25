@@ -220,7 +220,7 @@ def _rule_based_fallback(zones: List[ZoneFeatures]) -> List[RiskPrediction]:
                 score += 0.1
 
 
-        score = min(score, 1.0)
+        score = max(0.0, min(score, 1.0))
         risk = "High" if score > 0.6 else "Medium" if score > 0.3 else "Low"
 
         results.append(RiskPrediction(

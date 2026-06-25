@@ -109,19 +109,19 @@ if st.session_state.analysis_data:
                 
             features = geojson_data.get("features", [])
             if features:
-                # Inject Risk Level into properties for the tooltip
                 for f in features:
-                    zid = f["properties"]["zone_id"]
+                    zid = str(f["properties"].get("zone_id", ""))
+                    f["properties"]["zone_id"] = zid
                     f["properties"]["Risk_Level"] = "Unknown"
                     
-                    # Fallback for old geojsons that don't have Center_Lat yet
-                    if "Center_Lat" not in f["properties"]:
+                    if "Center_Lat" not in f["properties"] or f["properties"]["Center_Lat"] is None:
                         f["properties"]["Center_Lat"] = "Click 'Run Analysis' again"
+                    if "Center_Lon" not in f["properties"] or f["properties"]["Center_Lon"] is None:
                         f["properties"]["Center_Lon"] = "Click 'Run Analysis' again"
                         
                     for p in data.get("predictions", []):
-                        if p["zone_id"] == zid:
-                            f["properties"]["Risk_Level"] = p["waterlogging_risk"]
+                        if str(p.get("zone_id", "")) == zid:
+                            f["properties"]["Risk_Level"] = p.get("waterlogging_risk", "Unknown")
                             break
                             
                 try:

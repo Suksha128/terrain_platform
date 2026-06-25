@@ -75,7 +75,7 @@ def create_terrain_clusters(feature_paths: dict, output_dir: str, n_clusters: in
     km = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     labels = km.fit_predict(X_scaled)
 
-    zone_flat = np.full(X.shape[0], -1, dtype=np.float32)
+    zone_flat = np.full(X.shape[0], np.nan, dtype=np.float32)
     zone_flat[valid_mask] = labels.astype(np.float32) + 1
     zone_arr = zone_flat.reshape(ref_shape)
 

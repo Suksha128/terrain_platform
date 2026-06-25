@@ -7,6 +7,7 @@ from app.utils.raster_utils import read_dtm
 def compute_zonal_stats(zone_raster_path: str, feature_paths: dict, rainfall_total: float = None, ndvi_path: str = None, soil_moisture_path: str = None) -> List[ZoneFeatures]:
     zone_arr, _ = read_dtm(zone_raster_path)
     zone_ids = np.unique(zone_arr[~np.isnan(zone_arr)])
+    zone_ids = [zid for zid in zone_ids if zid > 0]
 
     feature_arrays = {}
     for name, path in feature_paths.items():
