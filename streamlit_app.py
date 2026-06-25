@@ -162,7 +162,16 @@ if st.session_state.analysis_data:
     for pred in data.get("predictions", []):
         zone_stats = next((z for z in data.get("zones", []) if z["zone_id"] == pred["zone_id"]), None)
         
-        with st.expander(f"Zone {pred['zone_id']} - {pred['waterlogging_risk']} Risk"):
+        # Extract coordinates for UI text display in case map tooltips cache
+        lat, lon = "N/A", "N/A"
+        if "geojson_data" in locals():
+            for f in geojson_data.get("features", []):
+                if f["properties"].get("zone_id") == pred["zone_id"]:
+                    lat = f["properties"].get("Center_Lat", "N/A")
+                    lon = f["properties"].get("Center_Lon", "N/A")
+                    break
+
+        with st.expander(f"Zone {pred['zone_id']} - {pred['waterlogging_risk']} Risk (Lat: {lat}, Lon: {lon})"):
             if zone_stats:
                 cols = st.columns(5)
                 cols[0].metric("Elevation (m)", f"{zone_stats['mean_elevation']:.1f}")
